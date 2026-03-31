@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -41,8 +42,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   }
 
   void _submit() async {
+    final l = AppLocalizations.of(context)!;
     if (_emailCtrl.text.isEmpty || _passwordCtrl.text.isEmpty) {
-      _showSnack('Please fill in all fields', isError: true);
+      _showSnack(l.fillAllFields, isError: true);
       return;
     }
     setState(() => _isLoading = true);
@@ -50,8 +52,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     if (!mounted) return;
     if (error != null) {
       _showSnack(error, isError: true);
-    } else {
-      _showSnack('Welcome back! 👋');
     }
     setState(() => _isLoading = false);
   }
@@ -69,6 +69,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Container(
@@ -85,7 +86,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 child: Column(
                   children: [
                     const SizedBox(height: 60),
-                    // Logo & header
                     SlideTransition(
                       position: _slide,
                       child: FadeTransition(
@@ -93,149 +93,78 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         child: Column(
                           children: [
                             Container(
-                              width: 68,
-                              height: 68,
+                              width: 68, height: 68,
                               decoration: BoxDecoration(
                                 gradient: c.primaryGradient,
                                 borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: c.primary.withOpacity(0.4),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
+                                boxShadow: [BoxShadow(color: c.primary.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))],
                               ),
                               child: const Icon(Icons.water_drop, color: Colors.white, size: 32),
                             ),
                             const SizedBox(height: 20),
-                            Text(
-                              'Welcome Back',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w700,
-                                color: c.textDark,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
+                            Text(l.welcomeBack, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: c.textDark, letterSpacing: -0.5)),
                             const SizedBox(height: 6),
-                            Text(
-                              'Sign in to continue your hydration journey',
-                              style: TextStyle(fontSize: 14, color: c.textMuted),
-                            ),
+                            Text(l.signInSubtitle, style: TextStyle(fontSize: 14, color: c.textMuted)),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 40),
-                    // Form
                     FadeTransition(
                       opacity: _fade,
                       child: Column(
                         children: [
-                          _buildInput(
-                            controller: _emailCtrl,
-                            icon: Icons.mail_outline_rounded,
-                            hint: 'Email address',
-                            keyboardType: TextInputType.emailAddress,
-                          ),
+                          _buildInput(controller: _emailCtrl, icon: Icons.mail_outline_rounded, hint: l.emailAddress, keyboardType: TextInputType.emailAddress),
                           const SizedBox(height: 14),
                           _buildInput(
                             controller: _passwordCtrl,
                             icon: Icons.lock_outline_rounded,
-                            hint: 'Password',
+                            hint: l.password,
                             obscure: !_showPassword,
                             suffix: GestureDetector(
-                              onTap: () =>
-                                  setState(() => _showPassword = !_showPassword),
-                              child: Icon(
-                                _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                color: c.textFaint,
-                                size: 20,
-                              ),
+                              onTap: () => setState(() => _showPassword = !_showPassword),
+                              child: Icon(_showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: c.textFaint, size: 20),
                             ),
                           ),
                           const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              'Forgot password?',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: c.primary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
+                          Align(alignment: Alignment.centerRight, child: Text(l.forgotPassword, style: TextStyle(fontSize: 12, color: c.primary, fontWeight: FontWeight.w500))),
                           const SizedBox(height: 20),
-                          _buildPrimaryButton(
-                            label: 'Sign In',
-                            icon: Icons.arrow_forward_rounded,
-                            isLoading: _isLoading,
-                            onTap: _submit,
-                          ),
+                          _buildPrimaryButton(label: l.signIn, icon: Icons.arrow_forward_rounded, isLoading: _isLoading, onTap: _submit),
                         ],
                       ),
                     ),
                     const SizedBox(height: 28),
-                    // Divider
                     Row(children: [
                       Expanded(child: Divider(color: c.borderLight)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('OR',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: c.textFaint)),
-                      ),
+                      Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(l.or, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: c.textFaint))),
                       Expanded(child: Divider(color: c.borderLight)),
                     ]),
                     const SizedBox(height: 16),
-                    // Social buttons
                     Row(children: [
-                      Expanded(child: _socialButton('Google', Icons.g_mobiledata_rounded)),
+                      Expanded(child: _socialButton(l.google, Icons.g_mobiledata_rounded)),
                       const SizedBox(width: 12),
-                      Expanded(child: _socialButton('Apple', Icons.apple_rounded)),
+                      Expanded(child: _socialButton(l.apple, Icons.apple_rounded)),
                     ]),
-
-                    // ── Debug login button (only in debug builds) ──
                     if (kDebugMode) ...[
                       const SizedBox(height: 24),
                       GestureDetector(
-                        onTap: () {
-                          context.read<AppProvider>().debugLogin();
-                        },
+                        onTap: () => context.read<AppProvider>().debugLogin(),
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(
                             color: Colors.transparent,
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: c.warning.withOpacity(0.6),
-                              width: 1.5,
-                            ),
+                            border: Border.all(color: c.warning.withOpacity(0.6), width: 1.5),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.bug_report_rounded, color: c.warning, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Debug Login',
-                                style: TextStyle(
-                                  color: c.warning,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+                          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            Icon(Icons.bug_report_rounded, color: c.warning, size: 18),
+                            const SizedBox(width: 8),
+                            Text(l.debugLogin, style: TextStyle(color: c.warning, fontSize: 14, fontWeight: FontWeight.w600)),
+                          ]),
                         ),
                       ),
                     ],
-
                     const Spacer(),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 24, top: 32),
@@ -243,17 +172,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         onTap: () => context.go('/register'),
                         child: RichText(
                           text: TextSpan(
-                            text: "Don't have an account? ",
+                            text: l.noAccount,
                             style: TextStyle(color: c.textMuted, fontSize: 14),
-                            children: [
-                              TextSpan(
-                                text: 'Sign Up',
-                                style: TextStyle(
-                                  color: c.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                            children: [TextSpan(text: l.signUp, style: TextStyle(color: c.primary, fontWeight: FontWeight.w600))],
                           ),
                         ),
                       ),
@@ -268,73 +189,32 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildInput({
-    required TextEditingController controller,
-    required IconData icon,
-    required String hint,
-    bool obscure = false,
-    TextInputType keyboardType = TextInputType.text,
-    Widget? suffix,
-  }) {
+  Widget _buildInput({required TextEditingController controller, required IconData icon, required String hint, bool obscure = false, TextInputType keyboardType = TextInputType.text, Widget? suffix}) {
     final c = context.colors;
     return Container(
-      decoration: BoxDecoration(
-        color: c.inputBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: c.border),
-      ),
+      decoration: BoxDecoration(color: c.inputBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.border)),
       child: TextField(
-        controller: controller,
-        obscureText: obscure,
-        keyboardType: keyboardType,
+        controller: controller, obscureText: obscure, keyboardType: keyboardType,
         style: TextStyle(color: c.textDark, fontSize: 15),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: c.textFaint, size: 20),
-          suffixIcon: suffix != null
-              ? Padding(padding: const EdgeInsets.all(12), child: suffix)
-              : null,
-          hintText: hint,
-          hintStyle: TextStyle(color: c.textFaint),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+          suffixIcon: suffix != null ? Padding(padding: const EdgeInsets.all(12), child: suffix) : null,
+          hintText: hint, hintStyle: TextStyle(color: c.textFaint),
+          border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
     );
   }
 
-  Widget _buildPrimaryButton({
-    required String label,
-    required IconData icon,
-    required bool isLoading,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildPrimaryButton({required String label, required IconData icon, required bool isLoading, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: AppTheme.primaryButtonDecoration,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: isLoading
-              ? [
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
-                  ),
-                ]
-              : [
-                  Text(label,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600)),
-                  const SizedBox(width: 8),
-                  Icon(icon, color: Colors.white, size: 18),
-                ],
-        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: isLoading
+            ? [const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))]
+            : [Text(label, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)), const SizedBox(width: 8), Icon(icon, color: Colors.white, size: 18)]),
       ),
     );
   }
@@ -343,23 +223,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     final c = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: c.inputBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: c.border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 22, color: c.textMid),
-          const SizedBox(width: 8),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: c.textMid)),
-        ],
-      ),
+      decoration: BoxDecoration(color: c.inputBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.border)),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(icon, size: 22, color: c.textMid), const SizedBox(width: 8),
+        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: c.textMid)),
+      ]),
     );
   }
 }

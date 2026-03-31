@@ -1,6 +1,6 @@
 class AppSettings {
-  final int? id;
-  final int? userId;
+  final String? id;
+  final String? userId;
   final int goal;
   final String unit;
   final bool reminderEnabled;
@@ -28,8 +28,8 @@ class AppSettings {
   });
 
   AppSettings copyWith({
-    int? id,
-    int? userId,
+    String? id,
+    String? userId,
     int? goal,
     String? unit,
     bool? reminderEnabled,
@@ -76,8 +76,8 @@ class AppSettings {
 
   factory AppSettings.fromMap(Map<String, dynamic> map) {
     return AppSettings(
-      id: map['id'] as int?,
-      userId: map['user_id'] as int?,
+      id: map['id'] as String?,
+      userId: map['user_id'] as String?,
       goal: map['goal'] as int,
       unit: map['unit'] as String,
       reminderEnabled: (map['reminder_enabled'] as int) == 1,

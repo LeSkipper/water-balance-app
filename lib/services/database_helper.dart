@@ -1,7 +1,5 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart' as p;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_profile.dart';
 import '../models/app_settings.dart';
 import '../models/intake_entry.dart';
@@ -10,79 +8,11 @@ class DatabaseHelper {
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
 
-  Database? _database;
-
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDB();
-    return _database!;
-  }
-
-  Future<Database> _initDB() async {
-    final dbPath = await getDatabasesPath();
-    final path = p.join(dbPath, 'water_balance.db');
-
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _onCreate,
-    );
-  }
-
-  Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        avatar TEXT DEFAULT '',
-        weight REAL NOT NULL DEFAULT 70,
-        height REAL NOT NULL DEFAULT 175,
-        age INTEGER NOT NULL DEFAULT 25,
-        gender TEXT NOT NULL DEFAULT 'male',
-        join_date TEXT NOT NULL
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE settings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL UNIQUE,
-        goal INTEGER NOT NULL DEFAULT 2000,
-        unit TEXT NOT NULL DEFAULT 'ml',
-        reminder_enabled INTEGER NOT NULL DEFAULT 1,
-        reminder_interval INTEGER NOT NULL DEFAULT 60,
-        wake_up_time TEXT NOT NULL DEFAULT '07:00',
-        bed_time TEXT NOT NULL DEFAULT '23:00',
-        sound_enabled INTEGER NOT NULL DEFAULT 1,
-        vibration_enabled INTEGER NOT NULL DEFAULT 1,
-        theme TEXT NOT NULL DEFAULT 'light',
-        language TEXT NOT NULL DEFAULT 'English',
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE intake_entries (
-        id TEXT PRIMARY KEY,
-        user_id INTEGER NOT NULL,
-        amount INTEGER NOT NULL,
-        time TEXT NOT NULL,
-        date TEXT NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )
-    ''');
-  }
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // --- Auth ---
 
-  String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    return sha256.convert(bytes).toString();
-  }
-
-  /// Register a new user. Returns the UserProfile or null if email already taken.
   Future<UserProfile?> registerUser({
     required String name,
     required String email,
@@ -92,158 +22,166 @@ class DatabaseHelper {
     int age = 25,
     String gender = 'male',
   }) async {
-    final db = await database;
+    try {
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    // Check if email already exists
-    final existing = await db.query('users', where: 'email = ?', whereArgs: [email]);
-    if (existing.isNotEmpty) return null;
+      final user = userCredential.user;
+      if (user == null) return null;
 
-    final now = DateTime.now();
-    final joinDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final now = DateTime.now();
+      final joinDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-    final id = await db.insert('users', {
-      'name': name,
-      'email': email,
-      'password_hash': _hashPassword(password),
-      'avatar': '',
-      'weight': weight,
-      'height': height,
-      'age': age,
-      'gender': gender,
-      'join_date': joinDate,
-    });
+      final userProfile = UserProfile(
+        id: user.uid,
+        name: name,
+        email: email,
+        weight: weight,
+        height: height,
+        age: age,
+        gender: gender,
+        joinDate: joinDate,
+      );
 
-    // Create default settings for the user
-    await db.insert('settings', {
-      'user_id': id,
-      'goal': 2000,
-      'unit': 'ml',
-      'reminder_enabled': 1,
-      'reminder_interval': 60,
-      'wake_up_time': '07:00',
-      'bed_time': '23:00',
-      'sound_enabled': 1,
-      'vibration_enabled': 1,
-      'theme': 'light',
-      'language': 'English',
-    });
+      await _firestore.collection('users').doc(user.uid).set(userProfile.toMap());
 
-    return UserProfile(
-      id: id,
-      name: name,
-      email: email,
-      weight: weight,
-      height: height,
-      age: age,
-      gender: gender,
-      joinDate: joinDate,
-    );
+      return userProfile;
+    } catch (e) {
+      print('Registration error: $e');
+      return null;
+    }
   }
 
-  /// Login with email and password. Returns UserProfile or null if invalid.
   Future<UserProfile?> loginUser(String email, String password) async {
-    final db = await database;
-    final results = await db.query(
-      'users',
-      where: 'email = ? AND password_hash = ?',
-      whereArgs: [email, _hashPassword(password)],
-    );
-    if (results.isEmpty) return null;
-    return UserProfile.fromMap(results.first);
+    try {
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = userCredential.user;
+      if (user == null) return null;
+
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (!doc.exists || doc.data() == null) return null;
+
+      return UserProfile.fromMap(doc.data()!);
+    } catch (e) {
+      print('Login error: $e');
+      return null;
+    }
   }
 
   // --- User Profile ---
 
   Future<void> updateUser(UserProfile user) async {
-    final db = await database;
-    final map = user.toMap();
-    map.remove('id');
-    await db.update('users', map, where: 'id = ?', whereArgs: [user.id]);
+    if (user.id == null) return;
+    await _firestore.collection('users').doc(user.id).update(user.toMap());
   }
 
   // --- Settings ---
 
-  Future<AppSettings> loadSettings(int userId) async {
-    final db = await database;
-    final results = await db.query('settings', where: 'user_id = ?', whereArgs: [userId]);
-    if (results.isEmpty) return AppSettings(userId: userId);
-    return AppSettings.fromMap(results.first);
+  Future<AppSettings> loadSettings(String userId) async {
+    final doc = await _firestore.collection('settings').doc(userId).get();
+    if (!doc.exists || doc.data() == null) {
+      return AppSettings(userId: userId);
+    }
+    return AppSettings.fromMap(doc.data()!);
   }
 
-  Future<void> saveSettings(int userId, AppSettings settings) async {
-    final db = await database;
+  Future<void> saveSettings(String userId, AppSettings settings) async {
     final map = settings.toMap();
     map['user_id'] = userId;
-    map.remove('id');
-
-    final existing = await db.query('settings', where: 'user_id = ?', whereArgs: [userId]);
-    if (existing.isEmpty) {
-      await db.insert('settings', map);
-    } else {
-      await db.update('settings', map, where: 'user_id = ?', whereArgs: [userId]);
-    }
+    await _firestore.collection('settings').doc(userId).set(map);
   }
 
   // --- Intake Entries ---
 
   Future<void> addIntakeEntry(IntakeEntry entry) async {
-    final db = await database;
-    await db.insert('intake_entries', entry.toMap());
+    await _firestore
+        .collection('users')
+        .doc(entry.userId)
+        .collection('intake_entries')
+        .doc(entry.id)
+        .set(entry.toMap());
   }
 
-  Future<List<IntakeEntry>> getIntakeEntries(int userId, String date) async {
-    final db = await database;
-    final results = await db.query(
-      'intake_entries',
-      where: 'user_id = ? AND date = ?',
-      whereArgs: [userId, date],
-      orderBy: 'rowid DESC',
-    );
-    return results.map((m) => IntakeEntry.fromMap(m)).toList();
+  Future<List<IntakeEntry>> getIntakeEntries(String userId, String date) async {
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('intake_entries')
+        .where('date', isEqualTo: date)
+        .get();
+
+    final entries = snapshot.docs.map((doc) => IntakeEntry.fromMap(doc.data())).toList();
+    // Сортировка по убыванию времени
+    entries.sort((a, b) => b.time.compareTo(a.time));
+    return entries;
   }
 
-  Future<void> deleteIntakeEntry(String id) async {
-    final db = await database;
-    await db.delete('intake_entries', where: 'id = ?', whereArgs: [id]);
+  Future<void> deleteIntakeEntry(String userId, String id) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('intake_entries')
+        .doc(id)
+        .delete();
   }
 
-  Future<List<Map<String, dynamic>>> getWeeklyData(int userId) async {
-    final db = await database;
+  Future<List<Map<String, dynamic>>> getWeeklyData(String userId) async {
     final now = DateTime.now();
     final days = <Map<String, dynamic>>[];
     final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-    // Find the Monday of the current week
     final monday = now.subtract(Duration(days: now.weekday - 1));
+    final endOfWeek = monday.add(const Duration(days: 6));
+
+    final mondayStr = '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+    final sundayStr = '${endOfWeek.year}-${endOfWeek.month.toString().padLeft(2, '0')}-${endOfWeek.day.toString().padLeft(2, '0')}';
+
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('intake_entries')
+        .where('date', isGreaterThanOrEqualTo: mondayStr)
+        .where('date', isLessThanOrEqualTo: sundayStr)
+        .get();
+
+    final entries = snapshot.docs.map((doc) => IntakeEntry.fromMap(doc.data())).toList();
 
     for (int i = 0; i < 7; i++) {
       final day = monday.add(Duration(days: i));
       final dateStr = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
 
-      final result = await db.rawQuery(
-        'SELECT COALESCE(SUM(amount), 0) as total FROM intake_entries WHERE user_id = ? AND date = ?',
-        [userId, dateStr],
-      );
+      final dailyEntries = entries.where((e) => e.date == dateStr);
+      final total = dailyEntries.fold<int>(0, (sum, e) => sum + e.amount);
 
-      final total = (result.first['total'] as num?)?.toInt() ?? 0;
       days.add({'day': dayNames[i], 'amount': total});
     }
 
     return days;
   }
 
-  Future<int> getStreak(int userId, int goal) async {
-    final db = await database;
+  Future<int> getStreak(String userId, int goal) async {
     int streak = 0;
     var checkDate = DateTime.now().subtract(const Duration(days: 1)); // start from yesterday
 
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('intake_entries')
+        .get();
+        
+    final allEntries = snapshot.docs.map((doc) => IntakeEntry.fromMap(doc.data())).toList();
+
     while (true) {
       final dateStr = '${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}';
-      final result = await db.rawQuery(
-        'SELECT COALESCE(SUM(amount), 0) as total FROM intake_entries WHERE user_id = ? AND date = ?',
-        [userId, dateStr],
-      );
-      final total = (result.first['total'] as num?)?.toInt() ?? 0;
+      final dailyEntries = allEntries.where((e) => e.date == dateStr);
+      final total = dailyEntries.fold<int>(0, (sum, e) => sum + e.amount);
+      
       if (total >= goal) {
         streak++;
         checkDate = checkDate.subtract(const Duration(days: 1));

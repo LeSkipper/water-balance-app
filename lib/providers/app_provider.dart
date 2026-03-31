@@ -20,10 +20,26 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  /// Maps the persisted language name to a [Locale].
+  Locale get locale {
+    switch (_settings.language) {
+      case 'Russian':
+        return const Locale('ru');
+      case 'Spanish':
+        return const Locale('es');
+      case 'French':
+        return const Locale('fr');
+      case 'German':
+        return const Locale('de');
+      default:
+        return const Locale('en');
+    }
+  }
+
   /// Debug‑only: authenticate with a dummy user without touching the DB.
   void debugLogin() {
     _user = UserProfile(
-      id: 0,
+      id: 'debug_id_123',
       name: 'Debug User',
       email: 'debug@test.com',
       weight: 70,
@@ -218,7 +234,7 @@ class AppProvider extends ChangeNotifier {
     _entries = _entries.where((e) => e.id != id).toList();
     notifyListeners();
 
-    await _db.deleteIntakeEntry(id);
+    await _db.deleteIntakeEntry(_user.id!, id);
     _weeklyData = await _db.getWeeklyData(_user.id!);
     notifyListeners();
   }

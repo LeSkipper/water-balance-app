@@ -1,5 +1,5 @@
 class UserProfile {
-  final int? id;
+  final String? id;
   final String name;
   final String email;
   final String avatar;
@@ -22,7 +22,7 @@ class UserProfile {
   });
 
   UserProfile copyWith({
-    int? id,
+    String? id,
     String? name,
     String? email,
     String? avatar,
@@ -61,7 +61,7 @@ class UserProfile {
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     return UserProfile(
-      id: map['id'] as int?,
+      id: map['id'] as String?,
       name: map['name'] as String,
       email: map['email'] as String,
       avatar: (map['avatar'] as String?) ?? '',

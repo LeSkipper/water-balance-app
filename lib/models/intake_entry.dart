@@ -1,6 +1,6 @@
 class IntakeEntry {
   final String id;
-  final int userId;
+  final String userId;
   final int amount;
   final String time;
   final String date;
@@ -26,7 +26,7 @@ class IntakeEntry {
   factory IntakeEntry.fromMap(Map<String, dynamic> map) {
     return IntakeEntry(
       id: map['id'] as String,
-      userId: map['user_id'] as int,
+      userId: map['user_id'] as String,
       amount: map['amount'] as int,
       time: map['time'] as String,
       date: map['date'] as String,
