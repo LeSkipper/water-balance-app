@@ -78,6 +78,12 @@ class AppProvider extends ChangeNotifier {
 
   int _streak = 0;
 
+  List<Map<String, dynamic>> _monthlyData = [];
+  int _totalWaterLogged = 0;
+  int _totalGoalsHit = 0;
+  int _bestStreak = 0;
+  int _totalDaysActive = 0;
+
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   UserProfile get user => _user;
@@ -85,6 +91,11 @@ class AppProvider extends ChangeNotifier {
   List<IntakeEntry> get entries => _entries;
   List<Map<String, dynamic>> get weeklyData => _weeklyData;
   int get streak => _streak;
+  List<Map<String, dynamic>> get monthlyData => _monthlyData;
+  int get totalWaterLogged => _totalWaterLogged;
+  int get totalGoalsHit => _totalGoalsHit;
+  int get bestStreak => _bestStreak;
+  int get totalDaysActive => _totalDaysActive;
 
   int get currentIntake => _entries.fold(0, (sum, e) => sum + e.amount);
 
@@ -179,13 +190,25 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _loadStats() async {
+    if (_user.id == null) return;
+    _weeklyData = await _db.getWeeklyData(_user.id!);
+    _streak = await _db.getStreak(_user.id!, _settings.goal);
+    _monthlyData = await _db.getMonthlyData(_user.id!);
+    
+    final lifetimeStats = await _db.getLifetimeStats(_user.id!, _settings.goal);
+    _totalWaterLogged = lifetimeStats['totalWaterLogged'];
+    _totalGoalsHit = lifetimeStats['goalsHit'];
+    _bestStreak = lifetimeStats['bestStreak'];
+    _totalDaysActive = lifetimeStats['totalDaysActive'];
+  }
+
   Future<void> _loadUserData() async {
     if (_user.id == null) return;
 
     _settings = await _db.loadSettings(_user.id!);
     _entries = await _db.getIntakeEntries(_user.id!, _todayDate);
-    _weeklyData = await _db.getWeeklyData(_user.id!);
-    _streak = await _db.getStreak(_user.id!, _settings.goal);
+    await _loadStats();
   }
 
   void logout() {
@@ -200,6 +223,11 @@ class AppProvider extends ChangeNotifier {
       {'day': 'Sat', 'amount': 0},
       {'day': 'Sun', 'amount': 0},
     ];
+    _monthlyData = [];
+    _totalWaterLogged = 0;
+    _totalGoalsHit = 0;
+    _bestStreak = 0;
+    _totalDaysActive = 0;
     _streak = 0;
     notifyListeners();
   }
@@ -225,8 +253,7 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     await _db.addIntakeEntry(entry);
-    // Update weekly data for today
-    _weeklyData = await _db.getWeeklyData(_user.id!);
+    await _loadStats();
     notifyListeners();
   }
 
@@ -235,13 +262,18 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     await _db.deleteIntakeEntry(_user.id!, id);
-    _weeklyData = await _db.getWeeklyData(_user.id!);
+    await _loadStats();
     notifyListeners();
   }
 
   Future<void> resetEntries() async {
-    // Only remove from in-memory list (for the day)
+    // Delete all current day entries from database
+    for (var entry in _entries) {
+      await _db.deleteIntakeEntry(_user.id!, entry.id);
+    }
     _entries = [];
+    await _loadStats();
     notifyListeners();
   }
+
 }

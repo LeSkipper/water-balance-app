@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -13,36 +12,28 @@ class StatsPage extends StatefulWidget {
 }
 
 class _StatsPageState extends State<StatsPage> {
-  int _currentMonth = DateTime.now().month - 1;
-  late List<Map<String, int>> _monthData;
 
-  static const _monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-  @override
-  void initState() {
-    super.initState();
-    final rng = Random();
-    _monthData = List.generate(28, (i) => {'day': i + 1, 'amount': rng.nextInt(1500) + 800});
-  }
-
-  List<(IconData, String Function(AppLocalizations), String Function(AppLocalizations), bool, List<Color>)> _achievements(AppLocalizations l) => [
-    (Icons.emoji_events_rounded, (l) => l.ach1Title, (l) => l.ach1Desc, true, [const Color(0xFFFBBF24), const Color(0xFFF97316)]),
-    (Icons.local_fire_department_rounded, (l) => l.ach2Title, (l) => l.ach2Desc, true, [const Color(0xFFF87171), const Color(0xFFFB7185)]),
-    (Icons.my_location_rounded, (l) => l.ach3Title, (l) => l.ach3Desc, true, [const Color(0xFF34D399), const Color(0xFF10B981)]),
-    (Icons.bolt_rounded, (l) => l.ach4Title, (l) => l.ach4Desc, false, [const Color(0xFFA78BFA), const Color(0xFF8B5CF6)]),
-    (Icons.military_tech_rounded, (l) => l.ach5Title, (l) => l.ach5Desc, false, [const Color(0xFF60A5FA), const Color(0xFF06B6D4)]),
-    (Icons.water_drop_rounded, (l) => l.ach6Title, (l) => l.ach6Desc, false, [const Color(0xFF38BDF8), const Color(0xFF3B82F6)]),
+  List<(IconData, String Function(AppLocalizations), String Function(AppLocalizations), bool, List<Color>)> _achievements(AppLocalizations l, AppProvider provider) => [
+    (Icons.emoji_events_rounded, (l) => l.ach1Title, (l) => l.ach1Desc, provider.totalWaterLogged > 0, [const Color(0xFFFBBF24), const Color(0xFFF97316)]),
+    (Icons.local_fire_department_rounded, (l) => l.ach2Title, (l) => l.ach2Desc, provider.bestStreak >= 7, [const Color(0xFFF87171), const Color(0xFFFB7185)]),
+    (Icons.my_location_rounded, (l) => l.ach3Title, (l) => l.ach3Desc, provider.totalGoalsHit >= 7, [const Color(0xFF34D399), const Color(0xFF10B981)]),
+    (Icons.bolt_rounded, (l) => l.ach4Title, (l) => l.ach4Desc, provider.bestStreak >= 30, [const Color(0xFFA78BFA), const Color(0xFF8B5CF6)]),
+    (Icons.military_tech_rounded, (l) => l.ach5Title, (l) => l.ach5Desc, provider.totalWaterLogged >= 100000, [const Color(0xFF60A5FA), const Color(0xFF06B6D4)]),
+    (Icons.water_drop_rounded, (l) => l.ach6Title, (l) => l.ach6Desc, provider.totalWaterLogged >= 500000, [const Color(0xFF38BDF8), const Color(0xFF3B82F6)]),
   ];
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final l = AppLocalizations.of(context)!;
-    final goal = context.watch<AppProvider>().settings.goal;
-    final avgIntake = (_monthData.map((d) => d['amount']!).reduce((a, b) => a + b) / _monthData.length).round();
-    final goalDays = _monthData.where((d) => d['amount']! >= goal).length;
-    final totalIntake = _monthData.map((d) => d['amount']!).reduce((a, b) => a + b);
-    final bestDay = _monthData.map((d) => d['amount']!).reduce((a, b) => a > b ? a : b);
+    final provider = context.watch<AppProvider>();
+    final goal = provider.settings.goal;
+    final data = provider.monthlyData;
+    
+    final avgIntake = data.isEmpty ? 0 : (data.map((d) => d['amount'] as int).reduce((a, b) => a + b) / data.length).round();
+    final goalDays = data.where((d) => (d['amount'] as int) >= goal).length;
+    final totalIntake = data.isEmpty ? 0 : data.map((d) => d['amount'] as int).reduce((a, b) => a + b);
+    final bestDay = data.isEmpty ? 0 : data.map((d) => d['amount'] as int).reduce((a, b) => a > b ? a : b);
 
     return Container(
       decoration: BoxDecoration(gradient: c.bgGradient),
@@ -55,14 +46,14 @@ class _StatsPageState extends State<StatsPage> {
             const SizedBox(height: 20),
             _buildSummary(c, l, avgIntake, goalDays, totalIntake, bestDay),
             const SizedBox(height: 16),
-            _buildMonthlyChart(c, l, goal, bestDay, goalDays),
+            _buildMonthlyChart(c, l, goal, bestDay, goalDays, data),
             const SizedBox(height: 16),
             Text(l.achievements, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textMuted)),
             const SizedBox(height: 12),
             GridView.count(
               crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
               crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 0.85,
-              children: _achievements(l).map((ach) => Opacity(
+              children: _achievements(l, provider).map((ach) => Opacity(
                 opacity: ach.$4 ? 1.0 : 0.45,
                 child: Container(
                   padding: const EdgeInsets.all(10),
@@ -119,26 +110,20 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 
-  Widget _buildMonthlyChart(AppColorsData c, AppLocalizations l, int goal, int maxAmount, int goalDays) {
+  Widget _buildMonthlyChart(AppColorsData c, AppLocalizations l, int goal, int maxAmount, int goalDays, List<Map<String, dynamic>> data) {
     return Container(
       padding: const EdgeInsets.all(16), decoration: AppTheme.cardDecorationOf(context),
       child: Column(children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Row(children: [Icon(Icons.calendar_month_rounded, color: c.primary, size: 18), const SizedBox(width: 8), Text(l.monthlyOverview, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.textDark))]),
-          Row(children: [
-            GestureDetector(onTap: () => setState(() => _currentMonth = (_currentMonth > 0 ? _currentMonth - 1 : 0)), child: Icon(Icons.chevron_left_rounded, color: c.textMuted, size: 22)),
-            const SizedBox(width: 4),
-            SizedBox(width: 84, child: Center(child: Text('${_monthNames[_currentMonth]} 2026', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textMid)))),
-            const SizedBox(width: 4),
-            GestureDetector(onTap: () => setState(() => _currentMonth = (_currentMonth < 11 ? _currentMonth + 1 : 11)), child: Icon(Icons.chevron_right_rounded, color: c.textMuted, size: 22)),
-          ]),
+          Text('Last 28 Days', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textMid)),
         ]),
         const SizedBox(height: 16),
         SizedBox(
           height: 80,
-          child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: _monthData.map((item) {
-            final amount = item['amount']!;
-            final frac = (amount / maxAmount).clamp(0.04, 1.0);
+          child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: data.map((item) {
+            final amount = item['amount'] as int;
+            final frac = maxAmount > 0 ? (amount / maxAmount).clamp(0.04, 1.0) : 0.04;
             final metGoal = amount >= goal;
             return Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 1), child: FractionallySizedBox(heightFactor: frac, alignment: Alignment.bottomCenter, child: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: metGoal ? [const Color(0xFF34D399), const Color(0xFF6EE7B7)] : c.isDark ? [const Color(0xFF334155), const Color(0xFF475569)] : [const Color(0xFFBFDBFE), const Color(0xFFDBEAFE)], begin: Alignment.bottomCenter, end: Alignment.topCenter), borderRadius: BorderRadius.circular(3))))));
           }).toList()),

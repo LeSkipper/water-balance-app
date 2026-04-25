@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import '../models/user_profile.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
 
@@ -96,10 +95,10 @@ class _ProfilePageState extends State<ProfilePage> {
               crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
               crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 2.6,
               children: [
-                _statCard(icon: Icons.water_drop_rounded, label: l.totalLogged, value: '147L', color: c.primary),
-                _statCard(icon: Icons.my_location_rounded, label: l.goalsHit, value: '89%', color: const Color(0xFF10B981)),
-                _statCard(icon: Icons.local_fire_department_rounded, label: l.bestStreak, value: '21 days', color: const Color(0xFFF97316)),
-                _statCard(icon: Icons.military_tech_rounded, label: l.achievementsLabel, value: '3/6', color: const Color(0xFF8B5CF6)),
+                _statCard(icon: Icons.water_drop_rounded, label: l.totalLogged, value: '${(provider.totalWaterLogged / 1000).toStringAsFixed(1)}L', color: c.primary),
+                _statCard(icon: Icons.my_location_rounded, label: l.goalsHit, value: '${provider.totalDaysActive > 0 ? ((provider.totalGoalsHit / provider.totalDaysActive) * 100).round() : 0}%', color: const Color(0xFF10B981)),
+                _statCard(icon: Icons.local_fire_department_rounded, label: l.bestStreak, value: '${provider.bestStreak} d', color: const Color(0xFFF97316)),
+                _statCard(icon: Icons.military_tech_rounded, label: l.achievementsLabel, value: '${_unlockedAchievements(provider)}/6', color: const Color(0xFF8B5CF6)),
               ],
             ),
             const SizedBox(height: 14),
@@ -118,12 +117,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ]),
             ),
             const SizedBox(height: 14),
-            ...[(l.privacySecurity, Icons.shield_rounded, c.primary), (l.helpSupport, Icons.help_outline_rounded, const Color(0xFF10B981)), (l.rateApp, Icons.star_rounded, const Color(0xFFFBBF24))].map((item) =>
-              Padding(padding: const EdgeInsets.only(bottom: 8), child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), decoration: AppTheme.cardDecorationOf(context),
-                child: Row(children: [Icon(item.$2, color: item.$3, size: 20), const SizedBox(width: 12), Expanded(child: Text(item.$1, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: c.textDark))), Icon(Icons.chevron_right_rounded, color: c.textFaint, size: 18)]),
-              )),
-            ),
             const SizedBox(height: 6),
             GestureDetector(
               onTap: () { provider.logout(); context.go('/login'); },
@@ -137,6 +130,17 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
     );
+  }
+
+  int _unlockedAchievements(AppProvider p) {
+    int count = 0;
+    if (p.totalWaterLogged > 0) count++;
+    if (p.bestStreak >= 7) count++;
+    if (p.totalGoalsHit >= 7) count++;
+    if (p.bestStreak >= 30) count++;
+    if (p.totalWaterLogged >= 100000) count++;
+    if (p.totalWaterLogged >= 500000) count++;
+    return count;
   }
 
   Widget _statCard({required IconData icon, required String label, required String value, required Color color}) {

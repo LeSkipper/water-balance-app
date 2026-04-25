@@ -133,18 +133,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 28),
-                    Row(children: [
-                      Expanded(child: Divider(color: c.borderLight)),
-                      Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(l.or, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: c.textFaint))),
-                      Expanded(child: Divider(color: c.borderLight)),
-                    ]),
-                    const SizedBox(height: 16),
-                    Row(children: [
-                      Expanded(child: _socialButton(l.google, Icons.g_mobiledata_rounded)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _socialButton(l.apple, Icons.apple_rounded)),
-                    ]),
                     if (kDebugMode) ...[
                       const SizedBox(height: 24),
                       GestureDetector(
@@ -219,15 +207,4 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _socialButton(String label, IconData icon) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(color: c.inputBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.border)),
-      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, size: 22, color: c.textMid), const SizedBox(width: 8),
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: c.textMid)),
-      ]),
-    );
-  }
 }

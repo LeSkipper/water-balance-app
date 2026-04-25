@@ -8,10 +8,25 @@ import '../l10n/app_localizations.dart';
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
-  void _showSnack(BuildContext context, String msg) {
+  void _showSnack(BuildContext context, String msg, {bool isError = false}) {
     final c = context.colors;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating, backgroundColor: c.success, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating, backgroundColor: isError ? c.danger : c.success, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))));
   }
+
+  Future<void> _pickTime(BuildContext context, AppProvider provider, bool isWakeUp) async {
+    final settings = provider.settings;
+    final timeStr = isWakeUp ? settings.wakeUpTime : settings.bedTime;
+    final parts = timeStr.split(':');
+    final initial = TimeOfDay(hour: int.tryParse(parts[0]) ?? (isWakeUp ? 7 : 23), minute: int.tryParse(parts[1]) ?? 0);
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked != null && context.mounted) {
+      final formatted = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      provider.updateSettings(isWakeUp
+          ? provider.settings.copyWith(wakeUpTime: formatted)
+          : provider.settings.copyWith(bedTime: formatted));
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -76,9 +91,9 @@ class SettingsPage extends StatelessWidget {
                 _row(context, icon: Icons.access_time_rounded, iconColor: const Color(0xFF0EA5E9), label: l.interval, desc: l.intervalDesc,
                   trailing: _dropdown(context, value: settings.reminderInterval, items: {30: l.min30, 60: l.hour1, 90: l.hours15, 120: l.hours2, 180: l.hours3}, onChanged: (v) => upd(settings.copyWith(reminderInterval: v!)))),
                 Divider(color: c.border, height: 1),
-                _row(context, icon: Icons.wb_sunny_rounded, iconColor: const Color(0xFFFBBF24), label: l.wakeUp, desc: settings.wakeUpTime, trailing: Icon(Icons.chevron_right_rounded, color: c.textFaint)),
+                GestureDetector(onTap: () => _pickTime(context, provider, true), child: _row(context, icon: Icons.wb_sunny_rounded, iconColor: const Color(0xFFFBBF24), label: l.wakeUp, desc: settings.wakeUpTime, trailing: Icon(Icons.chevron_right_rounded, color: c.textFaint))),
                 Divider(color: c.border, height: 1),
-                _row(context, icon: Icons.bedtime_rounded, iconColor: const Color(0xFF8B5CF6), label: l.bedTime, desc: settings.bedTime, trailing: Icon(Icons.chevron_right_rounded, color: c.textFaint)),
+                GestureDetector(onTap: () => _pickTime(context, provider, false), child: _row(context, icon: Icons.bedtime_rounded, iconColor: const Color(0xFF8B5CF6), label: l.bedTime, desc: settings.bedTime, trailing: Icon(Icons.chevron_right_rounded, color: c.textFaint))),
               ],
             ], title: l.reminders),
             const SizedBox(height: 12),

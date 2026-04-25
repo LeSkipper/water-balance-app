@@ -136,30 +136,30 @@ class DatabaseHelper {
     final days = <Map<String, dynamic>>[];
     final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-    final monday = now.subtract(Duration(days: now.weekday - 1));
-    final endOfWeek = monday.add(const Duration(days: 6));
+    // Rolling 7 days: 6 days ago up to today
+    final startDate = now.subtract(const Duration(days: 6));
 
-    final mondayStr = '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
-    final sundayStr = '${endOfWeek.year}-${endOfWeek.month.toString().padLeft(2, '0')}-${endOfWeek.day.toString().padLeft(2, '0')}';
+    final startStr = '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}';
+    final endStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
     final snapshot = await _firestore
         .collection('users')
         .doc(userId)
         .collection('intake_entries')
-        .where('date', isGreaterThanOrEqualTo: mondayStr)
-        .where('date', isLessThanOrEqualTo: sundayStr)
+        .where('date', isGreaterThanOrEqualTo: startStr)
+        .where('date', isLessThanOrEqualTo: endStr)
         .get();
 
     final entries = snapshot.docs.map((doc) => IntakeEntry.fromMap(doc.data())).toList();
 
-    for (int i = 0; i < 7; i++) {
-      final day = monday.add(Duration(days: i));
+    for (int i = 0; i <= 6; i++) {
+      final day = startDate.add(Duration(days: i));
       final dateStr = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
 
       final dailyEntries = entries.where((e) => e.date == dateStr);
       final total = dailyEntries.fold<int>(0, (sum, e) => sum + e.amount);
 
-      days.add({'day': dayNames[i], 'amount': total});
+      days.add({'day': dayNames[day.weekday - 1], 'amount': total});
     }
 
     return days;
@@ -167,8 +167,7 @@ class DatabaseHelper {
 
   Future<int> getStreak(String userId, int goal) async {
     int streak = 0;
-    var checkDate = DateTime.now().subtract(const Duration(days: 1)); // start from yesterday
-
+    
     final snapshot = await _firestore
         .collection('users')
         .doc(userId)
@@ -177,6 +176,18 @@ class DatabaseHelper {
         
     final allEntries = snapshot.docs.map((doc) => IntakeEntry.fromMap(doc.data())).toList();
 
+    var checkDate = DateTime.now();
+    // Check if goal met today
+    final todayStr = '${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}';
+    final todayEntries = allEntries.where((e) => e.date == todayStr);
+    final todayTotal = todayEntries.fold<int>(0, (sum, e) => sum + e.amount);
+
+    if (todayTotal >= goal) {
+      streak++;
+    }
+
+    // Check past days continuously
+    checkDate = checkDate.subtract(const Duration(days: 1));
     while (true) {
       final dateStr = '${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}';
       final dailyEntries = allEntries.where((e) => e.date == dateStr);
@@ -191,5 +202,100 @@ class DatabaseHelper {
     }
 
     return streak;
+  }
+
+  Future<List<Map<String, dynamic>>> getMonthlyData(String userId) async {
+    final now = DateTime.now();
+    final days = <Map<String, dynamic>>[];
+    
+    // Last 28 days for the monthly chart
+    final startDate = now.subtract(const Duration(days: 27));
+
+    final startStr = '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}';
+    final endStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('intake_entries')
+        .where('date', isGreaterThanOrEqualTo: startStr)
+        .where('date', isLessThanOrEqualTo: endStr)
+        .get();
+
+    final entries = snapshot.docs.map((doc) => IntakeEntry.fromMap(doc.data())).toList();
+
+    for (int i = 0; i < 28; i++) {
+      final day = startDate.add(Duration(days: i));
+      final dateStr = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+
+      final dailyEntries = entries.where((e) => e.date == dateStr);
+      final total = dailyEntries.fold<int>(0, (sum, e) => sum + e.amount);
+
+      days.add({'day': day.day, 'amount': total});
+    }
+
+    return days;
+  }
+
+  Future<Map<String, dynamic>> getLifetimeStats(String userId, int goal) async {
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('intake_entries')
+        .get();
+        
+    final allEntries = snapshot.docs.map((doc) => IntakeEntry.fromMap(doc.data())).toList();
+
+    if (allEntries.isEmpty) {
+      return {
+        'totalWaterLogged': 0,
+        'goalsHit': 0,
+        'bestStreak': 0,
+        'totalDaysActive': 0,
+      };
+    }
+
+    final totalWaterLogged = allEntries.fold<int>(0, (sum, e) => sum + e.amount);
+    
+    // Group by unique dates
+    final Map<String, int> dailyTotals = {};
+    for (var e in allEntries) {
+      dailyTotals[e.date] = (dailyTotals[e.date] ?? 0) + e.amount;
+    }
+
+    int goalsHit = 0;
+    for (var amount in dailyTotals.values) {
+      if (amount >= goal) goalsHit++;
+    }
+
+    // Sort dates
+    final sortedDates = dailyTotals.keys.toList()..sort();
+    
+    int bestStreak = 0;
+    int currentStreak = 0;
+    DateTime? prevDate;
+
+    for (var dateStr in sortedDates) {
+      if (dailyTotals[dateStr]! >= goal) {
+        final dateObj = DateTime.parse(dateStr);
+        if (prevDate == null || dateObj.difference(prevDate).inDays == 1) {
+          currentStreak++;
+        } else {
+          currentStreak = 1;
+        }
+        if (currentStreak > bestStreak) bestStreak = currentStreak;
+        prevDate = dateObj;
+      } else {
+        currentStreak = 0;
+        prevDate = null;
+      }
+    }
+
+    return {
+      'totalWaterLogged': totalWaterLogged,
+      'goalsHit': goalsHit,
+      'bestStreak': bestStreak,
+      'totalDaysActive': dailyTotals.length,
+    };
   }
 }
