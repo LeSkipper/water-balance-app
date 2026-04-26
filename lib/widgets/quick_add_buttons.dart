@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/units.dart';
 
 class QuickAddButtons extends StatelessWidget {
   final void Function(int amount) onAdd;
+  final String unit;
 
-  const QuickAddButtons({super.key, required this.onAdd});
+  const QuickAddButtons({super.key, required this.onAdd, this.unit = 'ml'});
 
   static const _presetAmounts = [100, 200, 330, 500];
   static const _presetIcons = [Icons.water_drop, Icons.local_drink, Icons.coffee, Icons.wine_bar];
@@ -21,6 +23,8 @@ class QuickAddButtons extends StatelessWidget {
     final c = context.colors;
     final l = AppLocalizations.of(context)!;
     final ctrl = TextEditingController();
+    final presets = unit == 'oz' ? [2, 5, 8, 14, 25, 34] : [50, 150, 250, 400, 750, 1000];
+    final maxInput = unit == 'oz' ? 170 : 5000;
 
     showModalBottomSheet(
       context: context,
@@ -50,14 +54,14 @@ class QuickAddButtons extends StatelessWidget {
                   decoration: InputDecoration(
                     border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     hintText: '0', hintStyle: TextStyle(color: c.textFaint, fontSize: 22, fontWeight: FontWeight.w700),
-                    suffixText: l.ml, suffixStyle: TextStyle(color: c.textMuted, fontSize: 16, fontWeight: FontWeight.w500),
+                    suffixText: unitLabel(unit), suffixStyle: TextStyle(color: c.textMuted, fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 8, runSpacing: 8,
-                children: [50, 150, 250, 400, 750, 1000].map((preset) => GestureDetector(
+                children: presets.map((preset) => GestureDetector(
                   onTap: () => ctrl.text = '$preset',
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -69,10 +73,11 @@ class QuickAddButtons extends StatelessWidget {
               const SizedBox(height: 20),
               GestureDetector(
                 onTap: () {
-                  final amount = int.tryParse(ctrl.text);
-                  if (amount != null && amount > 0 && amount <= 5000) {
+                  final raw = int.tryParse(ctrl.text);
+                  if (raw != null && raw > 0 && raw <= maxInput) {
+                    final mlAmount = toMl(raw, unit);
                     Navigator.pop(context);
-                    onAdd(amount);
+                    onAdd(mlAmount);
                   }
                 },
                 child: Container(
@@ -109,6 +114,7 @@ class QuickAddButtons extends StatelessWidget {
                   amount: amount,
                   icon: _presetIcons[i],
                   colors: colors,
+                  unit: unit,
                   onTap: () => onAdd(amount),
                 ),
               ),
@@ -118,6 +124,7 @@ class QuickAddButtons extends StatelessWidget {
         const SizedBox(height: 10),
         GestureDetector(
           onTap: () => _showCustomDialog(context),
+
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -138,7 +145,8 @@ class _QuickAddButton extends StatefulWidget {
   final IconData icon;
   final List<Color> colors;
   final VoidCallback onTap;
-  const _QuickAddButton({required this.amount, required this.icon, required this.colors, required this.onTap});
+  final String unit;
+  const _QuickAddButton({required this.amount, required this.icon, required this.colors, required this.onTap, required this.unit});
 
   @override
   State<_QuickAddButton> createState() => _QuickAddButtonState();
@@ -166,7 +174,6 @@ class _QuickAddButtonState extends State<_QuickAddButton> with SingleTickerProvi
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context)!;
     return ScaleTransition(
       scale: _scale,
       child: GestureDetector(
@@ -181,7 +188,7 @@ class _QuickAddButtonState extends State<_QuickAddButton> with SingleTickerProvi
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Icon(widget.icon, color: Colors.white, size: 22),
             const SizedBox(height: 6),
-            Text('${widget.amount} ${l.ml}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+            Text('${formatAmount(widget.amount, widget.unit)} ${unitLabel(widget.unit)}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
           ]),
         ),
       ),

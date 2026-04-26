@@ -67,3 +67,5 @@ firebase_app_id_file.json
 secrets.json
 *.pem
 *.p8
+
+.txt

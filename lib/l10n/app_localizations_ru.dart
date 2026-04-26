@@ -452,4 +452,41 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get done => 'Готово!';
+
+  @override
+  String get cancel => 'Отмена';
+
+  @override
+  String get confirm => 'Подтвердить';
+
+  @override
+  String get resetPassword => 'Сброс пароля';
+
+  @override
+  String get resetPasswordDesc => 'Введите email для получения ссылки сброса';
+
+  @override
+  String get sendResetLink => 'Отправить ссылку';
+
+  @override
+  String get resetEmailSent => 'Письмо отправлено! Проверьте почту.';
+
+  @override
+  String get resetEmailError => 'Не удалось отправить письмо. Проверьте адрес.';
+
+  @override
+  String get clearDataConfirmTitle => 'Очистить все данные?';
+
+  @override
+  String get clearDataConfirmMsg =>
+      'Вся история потребления воды будет удалена безвозвратно.';
+
+  @override
+  String get customReminders => 'Пользовательские напоминания';
+
+  @override
+  String get customRemindersDesc => 'Добавьте конкретное время напоминаний';
+
+  @override
+  String get addCustomTime => 'Добавить время';
 }

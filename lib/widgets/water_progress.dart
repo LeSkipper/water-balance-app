@@ -1,12 +1,14 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../utils/units.dart';
 
 class WaterProgress extends StatelessWidget {
   final int current;
   final int goal;
+  final String unit;
 
-  const WaterProgress({super.key, required this.current, required this.goal});
+  const WaterProgress({super.key, required this.current, required this.goal, this.unit = 'ml'});
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +40,7 @@ class WaterProgress extends StatelessWidget {
                     tween: IntTween(begin: 0, end: current),
                     duration: const Duration(milliseconds: 800),
                     builder: (_, value, __) => Text(
-                      '$value',
+                      formatAmount(value, unit),
                       style: TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.w700,
@@ -48,7 +50,7 @@ class WaterProgress extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'of $goal ml',
+                    'of ${formatAmount(goal, unit)} ${unitLabel(unit)}',
                     style: TextStyle(
                       fontSize: 14,
                       color: c.textLight,

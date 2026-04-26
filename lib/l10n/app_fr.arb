@@ -152,5 +152,19 @@
   "streakDays": "{count} jours",
   "avgDay": "Moy/jour",
   "today": "Aujourd'hui",
-  "done": "Fait !"
+  "done": "Fait !",
+
+  "cancel": "Annuler",
+  "confirm": "Confirmer",
+  "resetPassword": "Réinitialiser le mot de passe",
+  "resetPasswordDesc": "Entrez votre email pour recevoir le lien",
+  "sendResetLink": "Envoyer le lien",
+  "resetEmailSent": "Email envoyé ! Vérifiez votre boîte.",
+  "resetEmailError": "Impossible d'envoyer l'email.",
+  "clearDataConfirmTitle": "Effacer toutes les données ?",
+  "clearDataConfirmMsg": "Tout l'historique de consommation d'eau sera supprimé définitivement.",
+
+  "customReminders": "Rappels personnalisés",
+  "customRemindersDesc": "Ajoutez des horaires de rappel spécifiques",
+  "addCustomTime": "Ajouter une heure"
 }

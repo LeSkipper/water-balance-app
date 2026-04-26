@@ -11,6 +11,7 @@ class AppSettings {
   final bool vibrationEnabled;
   final String theme;
   final String language;
+  final List<String> customTimes;
 
   const AppSettings({
     this.id,
@@ -25,6 +26,7 @@ class AppSettings {
     this.vibrationEnabled = true,
     this.theme = 'light',
     this.language = 'English',
+    this.customTimes = const [],
   });
 
   AppSettings copyWith({
@@ -40,6 +42,7 @@ class AppSettings {
     bool? vibrationEnabled,
     String? theme,
     String? language,
+    List<String>? customTimes,
   }) {
     return AppSettings(
       id: id ?? this.id,
@@ -54,6 +57,7 @@ class AppSettings {
       vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
       theme: theme ?? this.theme,
       language: language ?? this.language,
+      customTimes: customTimes ?? this.customTimes,
     );
   }
 
@@ -71,23 +75,33 @@ class AppSettings {
       'vibration_enabled': vibrationEnabled ? 1 : 0,
       'theme': theme,
       'language': language,
+      'custom_times': customTimes,
     };
   }
 
   factory AppSettings.fromMap(Map<String, dynamic> map) {
+    bool _parseBool(dynamic v) {
+      if (v is bool) return v;
+      if (v is int) return v == 1;
+      return false;
+    }
     return AppSettings(
       id: map['id'] as String?,
       userId: map['user_id'] as String?,
-      goal: map['goal'] as int,
-      unit: map['unit'] as String,
-      reminderEnabled: (map['reminder_enabled'] as int) == 1,
-      reminderInterval: map['reminder_interval'] as int,
-      wakeUpTime: map['wake_up_time'] as String,
-      bedTime: map['bed_time'] as String,
-      soundEnabled: (map['sound_enabled'] as int) == 1,
-      vibrationEnabled: (map['vibration_enabled'] as int) == 1,
-      theme: map['theme'] as String,
-      language: map['language'] as String,
+      goal: (map['goal'] as num).toInt(),
+      unit: map['unit'] as String? ?? 'ml',
+      reminderEnabled: _parseBool(map['reminder_enabled']),
+      reminderInterval: (map['reminder_interval'] as num).toInt(),
+      wakeUpTime: map['wake_up_time'] as String? ?? '07:00',
+      bedTime: map['bed_time'] as String? ?? '23:00',
+      soundEnabled: _parseBool(map['sound_enabled']),
+      vibrationEnabled: _parseBool(map['vibration_enabled']),
+      theme: map['theme'] as String? ?? 'light',
+      language: map['language'] as String? ?? 'English',
+      customTimes: (map['custom_times'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
     );
   }
 }

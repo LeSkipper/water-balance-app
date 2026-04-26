@@ -11,6 +11,7 @@ import '../widgets/quick_add_buttons.dart';
 import '../widgets/intake_history.dart';
 import '../widgets/water_stats.dart';
 import '../widgets/weekly_chart.dart';
+import '../utils/units.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -48,6 +49,7 @@ class HomePage extends StatelessWidget {
     final settings = provider.settings;
     final entries = provider.entries;
     final goal = settings.goal;
+    final unit = settings.unit;
     final currentIntake = provider.currentIntake;
     final firstName = user.name.split(' ').first;
 
@@ -88,13 +90,13 @@ class HomePage extends StatelessWidget {
                   ],
                 ),
               ),
-              Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: WaterProgress(current: currentIntake, goal: goal)),
+              Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: WaterProgress(current: currentIntake, goal: goal, unit: unit)),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(l.quickAdd, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textMuted)),
                   const SizedBox(height: 10),
-                  QuickAddButtons(onAdd: (amount) {
+                  QuickAddButtons(unit: unit, onAdd: (amount) {
                     final entry = IntakeEntry(id: const Uuid().v4(), userId: user.id ?? '0', amount: amount, time: _formatTime(DateTime.now()), date: _todayDate());
                     final prev = provider.currentIntake;
                     provider.addEntry(entry);
@@ -102,13 +104,13 @@ class HomePage extends StatelessWidget {
                     if (newTotal >= goal && prev < goal) {
                       _showSnack(context, l.goalReachedMsg, isSuccess: true);
                     } else {
-                      _showSnack(context, l.addedMl(amount));
+                      _showSnack(context, '💧 +${formatAmount(amount, unit)} ${unitLabel(unit)} added');
                     }
                   }),
                 ]),
               ),
               const SizedBox(height: 16),
-              Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: WaterStats(streak: provider.streak, weekAverage: weekAvg, todayPercent: todayPercent)),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: WaterStats(streak: provider.streak, weekAverage: weekAvg, todayPercent: todayPercent, unit: unit)),
               const SizedBox(height: 16),
               Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: WeeklyChart(data: weeklyData, goal: goal)),
               const SizedBox(height: 16),
@@ -120,7 +122,7 @@ class HomePage extends StatelessWidget {
                 ]),
               ),
               const SizedBox(height: 10),
-              Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: IntakeHistory(entries: entries, onRemove: (id) {
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: IntakeHistory(entries: entries, unit: unit, onRemove: (id) {
                 provider.removeEntry(id);
                 _showSnack(context, l.entryRemoved);
               })),

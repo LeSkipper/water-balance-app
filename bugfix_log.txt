@@ -1,0 +1,65 @@
+BUGFIX LOG — 2026-04-26
+========================
+
+1. BUILD ERROR: desugaring config in wrong gradle file
+   File: android/build.gradle.kts
+   Bug: android {} block + coreLibraryDesugaring dependency были добавлены в ROOT
+        build.gradle.kts (где нет Android плагина). Синтаксис Groovy вместо Kotlin DSL.
+   Fix: Удалили лишний блок из root. В android/app/build.gradle.kts добавили:
+        isCoreLibraryDesugaringEnabled = true (в compileOptions)
+        coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4") (в dependencies)
+
+2. BUILD ERROR: flutter_timezone использует удалённый API
+   File: pubspec.yaml
+   Bug: flutter_timezone: ^1.0.8 использует класс Registrar (Flutter Android embedding v1,
+        давно удалён). Ошибка компиляции Kotlin.
+   Fix: Обновили до flutter_timezone: ^3.0.0
+
+3. OVERFLOW: Profile stat cards — bottom overflowed by 0.385px
+   File: lib/pages/profile_page.dart
+   Bug: GridView childAspectRatio: 2.6 слишком мало для высоты контента
+        (icon 36px + два текста + padding = ~60px, карточка ~59.6px).
+   Fix: childAspectRatio: 2.6 → 2.3
+
+4. OVERFLOW: Stats achievements grid
+   File: lib/pages/stats_page.dart
+   Bug: childAspectRatio: 0.85 не хватает для многострочного текста достижений.
+   Fix: childAspectRatio: 0.85 → 0.72
+
+5. OVERFLOW: Stats summary value text (горизонтальный)
+   File: lib/pages/stats_page.dart
+   Bug: Text с fontSize 18 в узкой карточке. Длинные значения (напр. "1234.5 oz") вылазят.
+   Fix: Обернули в FittedBox(fit: BoxFit.scaleDown)
+
+6. OVERFLOW: Profile _statCard Column без Flexible (горизонтальный)
+   File: lib/pages/profile_page.dart
+   Bug: Column с текстами внутри Row без Flexible → при длинной метке вылазит за границу Row.
+   Fix: Обернули Column в Flexible, текстам добавили overflow: TextOverflow.ellipsis
+
+7. TIME PICKER: Кастомные напоминания — 12h система по умолчанию PM
+   File: lib/pages/settings_page.dart
+   Bug: showTimePicker берёт формат из системы. На Android с 12h форматом в режиме
+        ввода с клавиатуры нет AM/PM — дефолт PM. Ввод "2:40" → 14:40 вместо 02:40.
+   Fix: Добавили builder с MediaQuery(alwaysUse24HourFormat: true) во все три пикера
+        (кастомное время, время подъёма, время отбоя).
+
+8. AVATAR: Невозможно сменить аватар после первой установки
+   File: lib/pages/profile_page.dart
+   Bug: Все аватары сохранялись с одним именем файла (avatar_{userId}.jpg).
+        Flutter кэширует FileImage по пути — при перезаписи файла показывал старое фото.
+   Fix: Имя файла теперь включает timestamp (avatar_{userId}_{timestamp}.jpg).
+        Старый файл удаляется с диска и вычищается из кэша через FileImage.evict().
+
+9. REGISTRATION: Wake Up / Bed Time поля нельзя менять
+   File: lib/pages/register_page.dart
+   Bug: Поля помечены readOnly: true но без onTap — нажатие ничего не делало.
+   Fix: Добавили метод _pickRegTime() с 24h пикером.
+        Поля обёрнуты в GestureDetector + onTap на сам TextField.
+
+10. REGISTRATION: Поле веса сбрасывается при вводе
+    File: lib/pages/register_page.dart
+    Bug: TextEditingController создавался прямо в build() — при каждом setState
+         (который вызывался через onChanged) контроллер пересоздавался с базовым
+         значением "70". Нельзя было удалить цифру — поле откатывалось назад.
+    Fix: Вынесли _weightCtrl как поле состояния, инициализируем в initState(),
+         диспозим в dispose(). Из onChanged убрали setState().

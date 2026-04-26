@@ -56,6 +56,58 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     setState(() => _isLoading = false);
   }
 
+  Future<void> _forgotPassword() async {
+    final l = AppLocalizations.of(context)!;
+    final emailCtrl = TextEditingController(text: _emailCtrl.text);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final c = context.colors;
+        return AlertDialog(
+          backgroundColor: c.bgCard,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(l.resetPassword, style: TextStyle(color: c.textDark, fontWeight: FontWeight.w700)),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(l.resetPasswordDesc, style: TextStyle(color: c.textMuted, fontSize: 14)),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(color: c.inputBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.border)),
+              child: TextField(
+                controller: emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                style: TextStyle(color: c.textDark, fontSize: 15),
+                decoration: InputDecoration(
+                  prefixIcon: Icon(Icons.mail_outline_rounded, color: c.textFaint, size: 20),
+                  hintText: l.emailAddress,
+                  hintStyle: TextStyle(color: c.textFaint),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel, style: TextStyle(color: c.textLight))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.sendResetLink, style: TextStyle(color: c.primary, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true && mounted) {
+      final email = emailCtrl.text.trim();
+      if (email.isEmpty) return;
+      try {
+        await context.read<AppProvider>().forgotPassword(email);
+        if (mounted) _showSnack(AppLocalizations.of(context)!.resetEmailSent);
+      } catch (_) {
+        if (mounted) _showSnack(AppLocalizations.of(context)!.resetEmailError, isError: true);
+      }
+    }
+  }
+
   void _showSnack(String msg, {bool isError = false}) {
     final c = context.colors;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -127,32 +179,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          Align(alignment: Alignment.centerRight, child: Text(l.forgotPassword, style: TextStyle(fontSize: 12, color: c.primary, fontWeight: FontWeight.w500))),
+                          Align(alignment: Alignment.centerRight, child: GestureDetector(onTap: _forgotPassword, child: Text(l.forgotPassword, style: TextStyle(fontSize: 12, color: c.primary, fontWeight: FontWeight.w500)))),
                           const SizedBox(height: 20),
                           _buildPrimaryButton(label: l.signIn, icon: Icons.arrow_forward_rounded, isLoading: _isLoading, onTap: _submit),
                         ],
                       ),
                     ),
-                    if (kDebugMode) ...[
-                      const SizedBox(height: 24),
-                      GestureDetector(
-                        onTap: () => context.read<AppProvider>().debugLogin(),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: c.warning.withOpacity(0.6), width: 1.5),
-                          ),
-                          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Icon(Icons.bug_report_rounded, color: c.warning, size: 18),
-                            const SizedBox(width: 8),
-                            Text(l.debugLogin, style: TextStyle(color: c.warning, fontSize: 14, fontWeight: FontWeight.w600)),
-                          ]),
-                        ),
-                      ),
-                    ],
                     const Spacer(),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 24, top: 32),

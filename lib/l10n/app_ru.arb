@@ -152,5 +152,19 @@
   "streakDays": "{count} дн.",
   "avgDay": "Сред/день",
   "today": "Сегодня",
-  "done": "Готово!"
+  "done": "Готово!",
+
+  "cancel": "Отмена",
+  "confirm": "Подтвердить",
+  "resetPassword": "Сброс пароля",
+  "resetPasswordDesc": "Введите email для получения ссылки сброса",
+  "sendResetLink": "Отправить ссылку",
+  "resetEmailSent": "Письмо отправлено! Проверьте почту.",
+  "resetEmailError": "Не удалось отправить письмо. Проверьте адрес.",
+  "clearDataConfirmTitle": "Очистить все данные?",
+  "clearDataConfirmMsg": "Вся история потребления воды будет удалена безвозвратно.",
+
+  "customReminders": "Пользовательские напоминания",
+  "customRemindersDesc": "Добавьте конкретное время напоминаний",
+  "addCustomTime": "Добавить время"
 }

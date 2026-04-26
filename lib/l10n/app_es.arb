@@ -152,5 +152,19 @@
   "streakDays": "{count} días",
   "avgDay": "Prom/día",
   "today": "Hoy",
-  "done": "¡Listo!"
+  "done": "¡Listo!",
+
+  "cancel": "Cancelar",
+  "confirm": "Confirmar",
+  "resetPassword": "Restablecer contraseña",
+  "resetPasswordDesc": "Ingresa tu email para recibir el enlace",
+  "sendResetLink": "Enviar enlace",
+  "resetEmailSent": "¡Email enviado! Revisa tu bandeja.",
+  "resetEmailError": "No se pudo enviar el email.",
+  "clearDataConfirmTitle": "¿Borrar todos los datos?",
+  "clearDataConfirmMsg": "Todo el historial de consumo de agua se eliminará permanentemente.",
+
+  "customReminders": "Recordatorios personalizados",
+  "customRemindersDesc": "Agrega horarios específicos de recordatorio",
+  "addCustomTime": "Agregar hora"
 }

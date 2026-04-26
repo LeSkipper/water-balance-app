@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/units.dart';
 
 class StatsPage extends StatefulWidget {
   const StatsPage({super.key});
@@ -28,6 +29,7 @@ class _StatsPageState extends State<StatsPage> {
     final l = AppLocalizations.of(context)!;
     final provider = context.watch<AppProvider>();
     final goal = provider.settings.goal;
+    final unit = provider.settings.unit;
     final data = provider.monthlyData;
     
     final avgIntake = data.isEmpty ? 0 : (data.map((d) => d['amount'] as int).reduce((a, b) => a + b) / data.length).round();
@@ -44,7 +46,7 @@ class _StatsPageState extends State<StatsPage> {
             Text(l.statistics, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: c.textDark, letterSpacing: -0.5)),
             Text(l.statsSubtitle, style: TextStyle(fontSize: 14, color: c.textMuted)),
             const SizedBox(height: 20),
-            _buildSummary(c, l, avgIntake, goalDays, totalIntake, bestDay),
+            _buildSummary(c, l, avgIntake, goalDays, totalIntake, bestDay, unit),
             const SizedBox(height: 16),
             _buildMonthlyChart(c, l, goal, bestDay, goalDays, data),
             const SizedBox(height: 16),
@@ -52,7 +54,7 @@ class _StatsPageState extends State<StatsPage> {
             const SizedBox(height: 12),
             GridView.count(
               crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 0.85,
+              crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 0.72,
               children: _achievements(l, provider).map((ach) => Opacity(
                 opacity: ach.$4 ? 1.0 : 0.45,
                 child: Container(
@@ -88,12 +90,15 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 
-  Widget _buildSummary(AppColorsData c, AppLocalizations l, int avg, int goalDays, int total, int best) {
+  Widget _buildSummary(AppColorsData c, AppLocalizations l, int avg, int goalDays, int total, int best, String unit) {
+    final totalDisplay = unit == 'oz'
+        ? '${formatAmount(total, unit)} oz'
+        : '${(total / 1000).toStringAsFixed(1)}L';
     final items = [
-      (Icons.trending_up_rounded, l.avgDaily, '$avg ml', const Color(0xFF10B981), c.isDark ? [const Color(0xFF1A3A2A), const Color(0xFF15332A)] : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)]),
+      (Icons.trending_up_rounded, l.avgDaily, '${formatAmount(avg, unit)} ${unitLabel(unit)}', const Color(0xFF10B981), c.isDark ? [const Color(0xFF1A3A2A), const Color(0xFF15332A)] : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)]),
       (Icons.my_location_rounded, l.goalsHit, '$goalDays/28', const Color(0xFF3B82F6), c.isDark ? [const Color(0xFF1E2D4A), const Color(0xFF1E2340)] : [const Color(0xFFEFF6FF), const Color(0xFFE0E7FF)]),
-      (Icons.water_drop_rounded, l.total, '${(total / 1000).toStringAsFixed(1)}L', const Color(0xFF0EA5E9), c.isDark ? [const Color(0xFF153040), const Color(0xFF1A3545)] : [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE)]),
-      (Icons.military_tech_rounded, l.bestDay, '$best ml', const Color(0xFF8B5CF6), c.isDark ? [const Color(0xFF2D1F5E), const Color(0xFF251B50)] : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)]),
+      (Icons.water_drop_rounded, l.total, totalDisplay, const Color(0xFF0EA5E9), c.isDark ? [const Color(0xFF153040), const Color(0xFF1A3545)] : [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE)]),
+      (Icons.military_tech_rounded, l.bestDay, '${formatAmount(best, unit)} ${unitLabel(unit)}', const Color(0xFF8B5CF6), c.isDark ? [const Color(0xFF2D1F5E), const Color(0xFF251B50)] : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)]),
     ];
     return GridView.count(
       crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
@@ -103,8 +108,8 @@ class _StatsPageState extends State<StatsPage> {
         decoration: BoxDecoration(gradient: LinearGradient(colors: item.$5 as List<Color>, begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(20)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(item.$1, color: item.$4, size: 20), const SizedBox(height: 8),
-          Text(item.$3, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c.textDark)),
-          Text(item.$2, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: c.textMuted)),
+          FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(item.$3, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c.textDark))),
+          Text(item.$2, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: c.textMuted), overflow: TextOverflow.ellipsis),
         ]),
       )).toList(),
     );

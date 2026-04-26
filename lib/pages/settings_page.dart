@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../models/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/units.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -13,12 +14,39 @@ class SettingsPage extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating, backgroundColor: isError ? c.danger : c.success, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))));
   }
 
+  Future<void> _pickCustomTime(BuildContext context, AppProvider provider) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (picked != null && context.mounted) {
+      final formatted = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      final current = List<String>.from(provider.settings.customTimes);
+      if (!current.contains(formatted)) {
+        current.add(formatted);
+        current.sort();
+        provider.updateSettings(provider.settings.copyWith(customTimes: current));
+      }
+    }
+  }
+
   Future<void> _pickTime(BuildContext context, AppProvider provider, bool isWakeUp) async {
     final settings = provider.settings;
     final timeStr = isWakeUp ? settings.wakeUpTime : settings.bedTime;
     final parts = timeStr.split(':');
     final initial = TimeOfDay(hour: int.tryParse(parts[0]) ?? (isWakeUp ? 7 : 23), minute: int.tryParse(parts[1]) ?? 0);
-    final picked = await showTimePicker(context: context, initialTime: initial);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
     if (picked != null && context.mounted) {
       final formatted = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       provider.updateSettings(isWakeUp
@@ -54,8 +82,8 @@ class SettingsPage extends StatelessWidget {
                   _circleBtn(context, icon: Icons.remove_rounded, onTap: () => upd(settings.copyWith(goal: (settings.goal - 250).clamp(500, 5000)))),
                   const SizedBox(width: 20),
                   Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text('${settings.goal}', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w700, color: c.textDark)),
-                    Text(l.ml, style: TextStyle(fontSize: 13, color: c.textMuted)),
+                    Text(formatAmount(settings.goal, settings.unit), style: TextStyle(fontSize: 36, fontWeight: FontWeight.w700, color: c.textDark)),
+                    Text(unitLabel(settings.unit), style: TextStyle(fontSize: 13, color: c.textMuted)),
                   ]),
                   const SizedBox(width: 20),
                   _circleBtn(context, icon: Icons.add_rounded, onTap: () => upd(settings.copyWith(goal: (settings.goal + 250).clamp(500, 5000)))),
@@ -69,7 +97,7 @@ class SettingsPage extends StatelessWidget {
                       onTap: () => upd(settings.copyWith(goal: preset)),
                       child: AnimatedContainer(duration: const Duration(milliseconds: 200), padding: const EdgeInsets.symmetric(vertical: 9),
                         decoration: BoxDecoration(gradient: isSelected ? c.primaryGradient : null, color: isSelected ? null : c.segmentBg, borderRadius: BorderRadius.circular(14), boxShadow: isSelected ? [BoxShadow(color: c.primary.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3))] : null),
-                        child: Center(child: Text('${preset / 1000}L', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? Colors.white : c.textLight))),
+                        child: Center(child: Text(settings.unit == 'oz' ? '${formatAmount(preset, 'oz')}oz' : '${preset / 1000}L', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? Colors.white : c.textLight))),
                       ),
                     ),
                   ));
@@ -94,6 +122,55 @@ class SettingsPage extends StatelessWidget {
                 GestureDetector(onTap: () => _pickTime(context, provider, true), child: _row(context, icon: Icons.wb_sunny_rounded, iconColor: const Color(0xFFFBBF24), label: l.wakeUp, desc: settings.wakeUpTime, trailing: Icon(Icons.chevron_right_rounded, color: c.textFaint))),
                 Divider(color: c.border, height: 1),
                 GestureDetector(onTap: () => _pickTime(context, provider, false), child: _row(context, icon: Icons.bedtime_rounded, iconColor: const Color(0xFF8B5CF6), label: l.bedTime, desc: settings.bedTime, trailing: Icon(Icons.chevron_right_rounded, color: c.textFaint))),
+                Divider(color: c.border, height: 1),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Container(width: 36, height: 36, decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.border)), child: Icon(Icons.alarm_add_rounded, color: const Color(0xFFEC4899), size: 18)),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(l.customReminders, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: c.textDark)),
+                        Text(l.customRemindersDesc, style: TextStyle(fontSize: 10, color: c.textFaint)),
+                      ])),
+                      const SizedBox(width: 12),
+                      GestureDetector(
+                        onTap: () => _pickCustomTime(context, provider),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(gradient: c.primaryGradient, borderRadius: BorderRadius.circular(12)),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.add_rounded, color: Colors.white, size: 14),
+                            const SizedBox(width: 4),
+                            Text(l.addCustomTime, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                          ]),
+                        ),
+                      ),
+                    ]),
+                    if (settings.customTimes.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Wrap(spacing: 8, runSpacing: 8, children: settings.customTimes.map((time) =>
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(color: c.segmentBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.border)),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.schedule_rounded, size: 12, color: c.primary),
+                            const SizedBox(width: 5),
+                            Text(time, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.textDark)),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                final updated = List<String>.from(settings.customTimes)..remove(time);
+                                upd(settings.copyWith(customTimes: updated));
+                              },
+                              child: Icon(Icons.close_rounded, size: 14, color: c.textFaint),
+                            ),
+                          ]),
+                        ),
+                      ).toList()),
+                    ],
+                  ]),
+                ),
               ],
             ], title: l.reminders),
             const SizedBox(height: 12),
@@ -115,9 +192,14 @@ class SettingsPage extends StatelessWidget {
             const SizedBox(height: 12),
             // Data
             _section(context, [
-              GestureDetector(onTap: () => _showSnack(context, l.exportedMsg), child: _row(context, icon: Icons.download_rounded, iconColor: c.primary, label: l.exportData, desc: l.exportDataDesc, trailing: Icon(Icons.chevron_right_rounded, color: c.textFaint))),
-              Divider(color: c.border, height: 1),
-              GestureDetector(onTap: () => _showSnack(context, l.syncedMsg), child: _row(context, icon: Icons.sync_rounded, iconColor: const Color(0xFF10B981), label: l.syncData, desc: l.syncDataDesc, trailing: Icon(Icons.chevron_right_rounded, color: c.textFaint))),
+              GestureDetector(
+                onTap: () async {
+                  final p = context.read<AppProvider>();
+                  await p.refreshData();
+                  if (context.mounted) _showSnack(context, l.syncedMsg);
+                },
+                child: _row(context, icon: Icons.sync_rounded, iconColor: const Color(0xFF10B981), label: l.syncData, desc: l.syncDataDesc, trailing: Icon(Icons.chevron_right_rounded, color: c.textFaint)),
+              ),
             ], title: l.dataSection),
             const SizedBox(height: 12),
             // Danger zone
@@ -125,7 +207,31 @@ class SettingsPage extends StatelessWidget {
               decoration: BoxDecoration(color: c.dangerZoneBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.dangerZoneBorder)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(l.dangerZone, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFF87171))),
-                GestureDetector(onTap: () => _showSnack(context, l.clearedMsg), child: _row(context, icon: Icons.delete_rounded, iconColor: const Color(0xFFF87171), label: l.clearAllData, desc: l.clearAllDataDesc, trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFFCA5A5)))),
+                GestureDetector(
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: c.bgCard,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      title: Text(l.clearDataConfirmTitle, style: TextStyle(color: c.textDark, fontWeight: FontWeight.w700)),
+                      content: Text(l.clearDataConfirmMsg, style: TextStyle(color: c.textMuted, fontSize: 14)),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel, style: TextStyle(color: c.textLight))),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: Text(l.confirm, style: const TextStyle(color: Color(0xFFF87171), fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true && context.mounted) {
+                    await context.read<AppProvider>().clearAllData();
+                    if (context.mounted) _showSnack(context, l.clearedMsg);
+                  }
+                },
+                child: _row(context, icon: Icons.delete_rounded, iconColor: const Color(0xFFF87171), label: l.clearAllData, desc: l.clearAllDataDesc, trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFFCA5A5))),
+              ),
               ]),
             ),
             const SizedBox(height: 20),

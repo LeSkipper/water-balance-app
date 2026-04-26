@@ -24,9 +24,32 @@ class _RegisterPageState extends State<RegisterPage> {
   String _activity = 'moderate';
   String _wakeUp = '07:00';
   String _bedTime = '23:00';
+  late final TextEditingController _weightCtrl;
 
   @override
-  void dispose() { _nameCtrl.dispose(); _emailCtrl.dispose(); _passCtrl.dispose(); _confirmPassCtrl.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    _weightCtrl = TextEditingController(text: '70');
+  }
+
+  @override
+  void dispose() { _nameCtrl.dispose(); _emailCtrl.dispose(); _passCtrl.dispose(); _confirmPassCtrl.dispose(); _weightCtrl.dispose(); super.dispose(); }
+
+  Future<void> _pickRegTime(bool isWakeUp) async {
+    final parts = (isWakeUp ? _wakeUp : _bedTime).split(':');
+    final initial = TimeOfDay(hour: int.tryParse(parts[0]) ?? (isWakeUp ? 7 : 23), minute: int.tryParse(parts[1]) ?? 0);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    final formatted = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    setState(() { if (isWakeUp) _wakeUp = formatted; else _bedTime = formatted; });
+  }
 
   void _showSnack(String msg, {bool isError = false, bool isSuccess = false}) {
     final c = context.colors;
@@ -162,9 +185,8 @@ class _RegisterPageState extends State<RegisterPage> {
       Text(l.weightKg, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textMuted)),
       const SizedBox(height: 8),
       Container(decoration: BoxDecoration(color: c.inputBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.border)),
-        child: TextField(keyboardType: TextInputType.number, onChanged: (v) => setState(() => _weight = double.tryParse(v) ?? 70), style: TextStyle(color: c.textDark),
-          decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
-          controller: TextEditingController(text: _weight.toStringAsFixed(0))..selection = TextSelection.collapsed(offset: _weight.toStringAsFixed(0).length))),
+        child: TextField(controller: _weightCtrl, keyboardType: TextInputType.number, onChanged: (v) { _weight = double.tryParse(v) ?? _weight; }, style: TextStyle(color: c.textDark),
+          decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16)))),
       const SizedBox(height: 16),
       Text(l.activityLevel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textMuted)),
       const SizedBox(height: 8),
@@ -181,12 +203,12 @@ class _RegisterPageState extends State<RegisterPage> {
       Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(l.wakeUpLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textMuted)), const SizedBox(height: 8),
-          Container(decoration: BoxDecoration(color: c.inputBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.border)), child: TextField(readOnly: true, controller: TextEditingController(text: _wakeUp), style: TextStyle(color: c.textDark, fontSize: 14), decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14)))),
+          GestureDetector(onTap: () => _pickRegTime(true), child: Container(decoration: BoxDecoration(color: c.inputBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.border)), child: TextField(readOnly: true, controller: TextEditingController(text: _wakeUp), style: TextStyle(color: c.textDark, fontSize: 14), decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14)), enableInteractiveSelection: false, onTap: () => _pickRegTime(true)))),
         ])),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(l.bedTimeLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textMuted)), const SizedBox(height: 8),
-          Container(decoration: BoxDecoration(color: c.inputBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.border)), child: TextField(readOnly: true, controller: TextEditingController(text: _bedTime), style: TextStyle(color: c.textDark, fontSize: 14), decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14)))),
+          GestureDetector(onTap: () => _pickRegTime(false), child: Container(decoration: BoxDecoration(color: c.inputBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.border)), child: TextField(readOnly: true, controller: TextEditingController(text: _bedTime), style: TextStyle(color: c.textDark, fontSize: 14), decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14)), enableInteractiveSelection: false, onTap: () => _pickRegTime(false)))),
         ])),
       ]),
       const SizedBox(height: 16),

@@ -949,6 +949,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Done!'**
   String get done;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
+
+  /// No description provided for @resetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPassword;
+
+  /// No description provided for @resetPasswordDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email to receive a reset link'**
+  String get resetPasswordDesc;
+
+  /// No description provided for @sendResetLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Reset Link'**
+  String get sendResetLink;
+
+  /// No description provided for @resetEmailSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset email sent! Check your inbox.'**
+  String get resetEmailSent;
+
+  /// No description provided for @resetEmailError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send reset email. Check the address.'**
+  String get resetEmailError;
+
+  /// No description provided for @clearDataConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All Data?'**
+  String get clearDataConfirmTitle;
+
+  /// No description provided for @clearDataConfirmMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete all your water intake history. This cannot be undone.'**
+  String get clearDataConfirmMsg;
+
+  /// No description provided for @customReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Reminders'**
+  String get customReminders;
+
+  /// No description provided for @customRemindersDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Add specific daily reminder times'**
+  String get customRemindersDesc;
+
+  /// No description provided for @addCustomTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Add time'**
+  String get addCustomTime;
 }
 
 class _AppLocalizationsDelegate

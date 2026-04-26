@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../models/intake_entry.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/units.dart';
 
 class IntakeHistory extends StatelessWidget {
   final List<IntakeEntry> entries;
   final void Function(String id) onRemove;
+  final String unit;
 
-  const IntakeHistory({super.key, required this.entries, required this.onRemove});
+  const IntakeHistory({super.key, required this.entries, required this.onRemove, this.unit = 'ml'});
 
   @override
   Widget build(BuildContext context) {
@@ -27,14 +29,15 @@ class IntakeHistory extends StatelessWidget {
       );
     }
 
-    return Column(children: entries.map((entry) => Padding(padding: const EdgeInsets.only(bottom: 8), child: _EntryCard(entry: entry, onRemove: onRemove))).toList());
+    return Column(children: entries.map((entry) => Padding(padding: const EdgeInsets.only(bottom: 8), child: _EntryCard(entry: entry, onRemove: onRemove, unit: unit))).toList());
   }
 }
 
 class _EntryCard extends StatefulWidget {
   final IntakeEntry entry;
   final void Function(String id) onRemove;
-  const _EntryCard({required this.entry, required this.onRemove});
+  final String unit;
+  const _EntryCard({required this.entry, required this.onRemove, required this.unit});
 
   @override
   State<_EntryCard> createState() => _EntryCardState();
@@ -73,7 +76,7 @@ class _EntryCardState extends State<_EntryCard> with SingleTickerProviderStateMi
             Container(width: 38, height: 38, decoration: BoxDecoration(gradient: LinearGradient(colors: c.isDark ? [const Color(0xFF1E2D4A), const Color(0xFF1E2340)] : [const Color(0xFFE0F2FE), const Color(0xFFDBEAFE)], begin: Alignment.topLeft, end: Alignment.bottomRight), shape: BoxShape.circle), child: Icon(Icons.water_drop, size: 18, color: c.primary)),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${widget.entry.amount} ${l.ml}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.textDark)),
+              Text('${formatAmount(widget.entry.amount, widget.unit)} ${unitLabel(widget.unit)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.textDark)),
               Text(widget.entry.time, style: TextStyle(fontSize: 12, color: c.textMuted)),
             ])),
             GestureDetector(onTap: () => widget.onRemove(widget.entry.id), child: Container(padding: const EdgeInsets.all(8), child: Icon(Icons.delete_outline_rounded, size: 18, color: c.textFaint))),

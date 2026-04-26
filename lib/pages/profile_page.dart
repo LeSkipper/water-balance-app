@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
@@ -37,6 +40,22 @@ class _ProfilePageState extends State<ProfilePage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.profileUpdated), backgroundColor: c.success, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))));
   }
 
+  Future<void> _pickAvatar(AppProvider provider) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 85);
+    if (picked == null || !mounted) return;
+    final dir = await getApplicationDocumentsDirectory();
+    final oldPath = provider.user.avatar;
+    final fileName = 'avatar_${provider.user.id ?? 'user'}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final saved = await File(picked.path).copy('${dir.path}/$fileName');
+    if (oldPath.isNotEmpty) {
+      final old = File(oldPath);
+      if (await old.exists()) await old.delete();
+      await FileImage(old).evict();
+    }
+    provider.updateProfile(provider.user.copyWith(avatar: saved.path));
+  }
+
   void _cancel(AppProvider provider) {
     final user = provider.user;
     _nameCtrl.text = user.name; _weightCtrl.text = user.weight.toStringAsFixed(0);
@@ -72,10 +91,27 @@ class _ProfilePageState extends State<ProfilePage> {
             ]),
             const SizedBox(height: 20),
             Column(children: [
-              Container(
-                width: 82, height: 82,
-                decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF60A5FA), Color(0xFF6366F1)]), shape: BoxShape.circle, boxShadow: [BoxShadow(color: c.primary.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 6))]),
-                child: Center(child: Text(initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white))),
+              GestureDetector(
+                onTap: () => _pickAvatar(provider),
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 82, height: 82,
+                      decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF60A5FA), Color(0xFF6366F1)]), shape: BoxShape.circle, boxShadow: [BoxShadow(color: c.primary.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 6))]),
+                      child: user.avatar.isNotEmpty && File(user.avatar).existsSync()
+                          ? ClipOval(child: Image.file(File(user.avatar), width: 82, height: 82, fit: BoxFit.cover))
+                          : Center(child: Text(initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white))),
+                    ),
+                    Positioned(
+                      right: 0, bottom: 0,
+                      child: Container(
+                        width: 26, height: 26,
+                        decoration: BoxDecoration(gradient: c.primaryGradient, shape: BoxShape.circle, border: Border.all(color: c.bgCard, width: 2)),
+                        child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 13),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               if (_isEditing)
@@ -93,7 +129,7 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 20),
             GridView.count(
               crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 2.6,
+              crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 2.3,
               children: [
                 _statCard(icon: Icons.water_drop_rounded, label: l.totalLogged, value: '${(provider.totalWaterLogged / 1000).toStringAsFixed(1)}L', color: c.primary),
                 _statCard(icon: Icons.my_location_rounded, label: l.goalsHit, value: '${provider.totalDaysActive > 0 ? ((provider.totalGoalsHit / provider.totalDaysActive) * 100).round() : 0}%', color: const Color(0xFF10B981)),
@@ -150,10 +186,10 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(children: [
         Container(width: 36, height: 36, decoration: BoxDecoration(color: c.iconBg, shape: BoxShape.circle, border: Border.all(color: c.border)), child: Icon(icon, color: color, size: 17)),
         const SizedBox(width: 10),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.textDark)),
-          Text(label, style: TextStyle(fontSize: 10, color: c.textFaint)),
-        ]),
+        Flexible(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.textDark), overflow: TextOverflow.ellipsis),
+          Text(label, style: TextStyle(fontSize: 10, color: c.textFaint), overflow: TextOverflow.ellipsis),
+        ])),
       ]),
     );
   }

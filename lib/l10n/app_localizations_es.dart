@@ -452,4 +452,42 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get done => '¡Listo!';
+
+  @override
+  String get cancel => 'Cancelar';
+
+  @override
+  String get confirm => 'Confirmar';
+
+  @override
+  String get resetPassword => 'Restablecer contraseña';
+
+  @override
+  String get resetPasswordDesc => 'Ingresa tu email para recibir el enlace';
+
+  @override
+  String get sendResetLink => 'Enviar enlace';
+
+  @override
+  String get resetEmailSent => '¡Email enviado! Revisa tu bandeja.';
+
+  @override
+  String get resetEmailError => 'No se pudo enviar el email.';
+
+  @override
+  String get clearDataConfirmTitle => '¿Borrar todos los datos?';
+
+  @override
+  String get clearDataConfirmMsg =>
+      'Todo el historial de consumo de agua se eliminará permanentemente.';
+
+  @override
+  String get customReminders => 'Recordatorios personalizados';
+
+  @override
+  String get customRemindersDesc =>
+      'Agrega horarios específicos de recordatorio';
+
+  @override
+  String get addCustomTime => 'Agregar hora';
 }

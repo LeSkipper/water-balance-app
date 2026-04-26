@@ -152,5 +152,19 @@
   "streakDays": "{count} Tage",
   "avgDay": "Durch/Tag",
   "today": "Heute",
-  "done": "Fertig!"
+  "done": "Fertig!",
+
+  "cancel": "Abbrechen",
+  "confirm": "Bestätigen",
+  "resetPassword": "Passwort zurücksetzen",
+  "resetPasswordDesc": "E-Mail für den Reset-Link eingeben",
+  "sendResetLink": "Reset-Link senden",
+  "resetEmailSent": "E-Mail gesendet! Posteingang prüfen.",
+  "resetEmailError": "E-Mail konnte nicht gesendet werden.",
+  "clearDataConfirmTitle": "Alle Daten löschen?",
+  "clearDataConfirmMsg": "Die gesamte Trinkwasserhistorie wird unwiderruflich gelöscht.",
+
+  "customReminders": "Benutzerdefinierte Erinnerungen",
+  "customRemindersDesc": "Spezifische tägliche Erinnerungszeiten hinzufügen",
+  "addCustomTime": "Zeit hinzufügen"
 }

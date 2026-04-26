@@ -159,5 +159,19 @@
   "@streakDays": { "placeholders": { "count": { "type": "int" } } },
   "avgDay": "Avg/day",
   "today": "Today",
-  "done": "Done!"
+  "done": "Done!",
+
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "resetPassword": "Reset Password",
+  "resetPasswordDesc": "Enter your email to receive a reset link",
+  "sendResetLink": "Send Reset Link",
+  "resetEmailSent": "Reset email sent! Check your inbox.",
+  "resetEmailError": "Could not send reset email. Check the address.",
+  "clearDataConfirmTitle": "Clear All Data?",
+  "clearDataConfirmMsg": "This will permanently delete all your water intake history. This cannot be undone.",
+
+  "customReminders": "Custom Reminders",
+  "customRemindersDesc": "Add specific daily reminder times",
+  "addCustomTime": "Add time"
 }

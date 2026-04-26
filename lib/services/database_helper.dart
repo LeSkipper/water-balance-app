@@ -237,6 +237,40 @@ class DatabaseHelper {
     return days;
   }
 
+  Future<void> saveStats(String userId, Map<String, dynamic> stats) async {
+    await _firestore.collection('stats').doc(userId).set(stats);
+  }
+
+  Future<void> incrementTotalWater(String userId, int delta) async {
+    await _firestore.collection('stats').doc(userId).set(
+      {'totalWaterLogged': FieldValue.increment(delta)},
+      SetOptions(merge: true),
+    );
+  }
+
+  Future<Map<String, dynamic>> loadStats(String userId) async {
+    final doc = await _firestore.collection('stats').doc(userId).get();
+    if (!doc.exists || doc.data() == null) return {};
+    return doc.data()!;
+  }
+
+  Future<void> deleteAllIntakeEntries(String userId) async {
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('intake_entries')
+        .get();
+    final batch = _firestore.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
+  Future<void> forgotPassword(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
   Future<Map<String, dynamic>> getLifetimeStats(String userId, int goal) async {
     final snapshot = await _firestore
         .collection('users')

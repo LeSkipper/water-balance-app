@@ -3,6 +3,7 @@ import '../models/user_profile.dart';
 import '../models/app_settings.dart';
 import '../models/intake_entry.dart';
 import '../services/database_helper.dart';
+import '../services/notification_service.dart';
 
 class AppProvider extends ChangeNotifier {
   bool _isAuthenticated = false;
@@ -192,15 +193,38 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> _loadStats() async {
     if (_user.id == null) return;
+    final saved = await _db.loadStats(_user.id!);
+    if (saved.isNotEmpty) {
+      _totalWaterLogged = (saved['totalWaterLogged'] as num?)?.toInt() ?? 0;
+      _totalGoalsHit = (saved['goalsHit'] as num?)?.toInt() ?? 0;
+      _bestStreak = (saved['bestStreak'] as num?)?.toInt() ?? 0;
+      _totalDaysActive = (saved['totalDaysActive'] as num?)?.toInt() ?? 0;
+      _streak = (saved['currentStreak'] as num?)?.toInt() ?? 0;
+    } else {
+      await _refreshStats();
+    }
     _weeklyData = await _db.getWeeklyData(_user.id!);
-    _streak = await _db.getStreak(_user.id!, _settings.goal);
     _monthlyData = await _db.getMonthlyData(_user.id!);
-    
+  }
+
+  Future<void> _refreshStats() async {
+    if (_user.id == null) return;
     final lifetimeStats = await _db.getLifetimeStats(_user.id!, _settings.goal);
+    final currentStreak = await _db.getStreak(_user.id!, _settings.goal);
     _totalWaterLogged = lifetimeStats['totalWaterLogged'];
     _totalGoalsHit = lifetimeStats['goalsHit'];
     _bestStreak = lifetimeStats['bestStreak'];
     _totalDaysActive = lifetimeStats['totalDaysActive'];
+    _streak = currentStreak;
+    await _db.saveStats(_user.id!, {
+      'totalWaterLogged': _totalWaterLogged,
+      'goalsHit': _totalGoalsHit,
+      'bestStreak': _bestStreak,
+      'totalDaysActive': _totalDaysActive,
+      'currentStreak': _streak,
+    });
+    _weeklyData = await _db.getWeeklyData(_user.id!);
+    _monthlyData = await _db.getMonthlyData(_user.id!);
   }
 
   Future<void> _loadUserData() async {
@@ -209,10 +233,14 @@ class AppProvider extends ChangeNotifier {
     _settings = await _db.loadSettings(_user.id!);
     _entries = await _db.getIntakeEntries(_user.id!, _todayDate);
     await _loadStats();
+
+    await NotificationService.instance.requestPermissions();
+    await NotificationService.instance.scheduleReminders(_settings);
   }
 
   void logout() {
     _isAuthenticated = false;
+    NotificationService.instance.cancelAll();
     _entries = [];
     _weeklyData = [
       {'day': 'Mon', 'amount': 0},
@@ -245,6 +273,7 @@ class AppProvider extends ChangeNotifier {
     if (_user.id != null) {
       await _db.saveSettings(_user.id!, updated);
     }
+    await NotificationService.instance.scheduleReminders(updated);
     notifyListeners();
   }
 
@@ -253,27 +282,81 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     await _db.addIntakeEntry(entry);
-    await _loadStats();
+    if (_user.id != null) {
+      await _db.incrementTotalWater(_user.id!, entry.amount);
+      _totalWaterLogged += entry.amount;
+      _weeklyData = await _db.getWeeklyData(_user.id!);
+      _monthlyData = await _db.getMonthlyData(_user.id!);
+    }
     notifyListeners();
   }
 
   Future<void> removeEntry(String id) async {
+    final removed = _entries.firstWhere((e) => e.id == id);
     _entries = _entries.where((e) => e.id != id).toList();
     notifyListeners();
 
     await _db.deleteIntakeEntry(_user.id!, id);
-    await _loadStats();
+    if (_user.id != null) {
+      await _db.incrementTotalWater(_user.id!, -removed.amount);
+      _totalWaterLogged = (_totalWaterLogged - removed.amount).clamp(0, 999999999);
+      _weeklyData = await _db.getWeeklyData(_user.id!);
+      _monthlyData = await _db.getMonthlyData(_user.id!);
+    }
     notifyListeners();
   }
 
   Future<void> resetEntries() async {
-    // Delete all current day entries from database
+    final total = _entries.fold(0, (sum, e) => sum + e.amount);
     for (var entry in _entries) {
       await _db.deleteIntakeEntry(_user.id!, entry.id);
     }
     _entries = [];
-    await _loadStats();
+    if (_user.id != null && total > 0) {
+      await _db.incrementTotalWater(_user.id!, -total);
+      _totalWaterLogged = (_totalWaterLogged - total).clamp(0, 999999999);
+      _weeklyData = await _db.getWeeklyData(_user.id!);
+      _monthlyData = await _db.getMonthlyData(_user.id!);
+    }
     notifyListeners();
+  }
+
+  Future<void> refreshData() async {
+    await _loadUserData();
+    notifyListeners();
+  }
+
+  Future<void> clearAllData() async {
+    if (_user.id == null) return;
+    await _db.deleteAllIntakeEntries(_user.id!);
+    _entries = [];
+    _totalWaterLogged = 0;
+    _totalGoalsHit = 0;
+    _bestStreak = 0;
+    _totalDaysActive = 0;
+    _streak = 0;
+    _weeklyData = [
+      {'day': 'Mon', 'amount': 0},
+      {'day': 'Tue', 'amount': 0},
+      {'day': 'Wed', 'amount': 0},
+      {'day': 'Thu', 'amount': 0},
+      {'day': 'Fri', 'amount': 0},
+      {'day': 'Sat', 'amount': 0},
+      {'day': 'Sun', 'amount': 0},
+    ];
+    _monthlyData = [];
+    await _db.saveStats(_user.id!, {
+      'totalWaterLogged': 0,
+      'goalsHit': 0,
+      'bestStreak': 0,
+      'totalDaysActive': 0,
+      'currentStreak': 0,
+    });
+    notifyListeners();
+  }
+
+  Future<void> forgotPassword(String email) async {
+    await _db.forgotPassword(email);
   }
 
 }

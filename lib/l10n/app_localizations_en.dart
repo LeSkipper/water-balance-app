@@ -452,4 +452,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get done => 'Done!';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get resetPassword => 'Reset Password';
+
+  @override
+  String get resetPasswordDesc => 'Enter your email to receive a reset link';
+
+  @override
+  String get sendResetLink => 'Send Reset Link';
+
+  @override
+  String get resetEmailSent => 'Reset email sent! Check your inbox.';
+
+  @override
+  String get resetEmailError =>
+      'Could not send reset email. Check the address.';
+
+  @override
+  String get clearDataConfirmTitle => 'Clear All Data?';
+
+  @override
+  String get clearDataConfirmMsg =>
+      'This will permanently delete all your water intake history. This cannot be undone.';
+
+  @override
+  String get customReminders => 'Custom Reminders';
+
+  @override
+  String get customRemindersDesc => 'Add specific daily reminder times';
+
+  @override
+  String get addCustomTime => 'Add time';
 }

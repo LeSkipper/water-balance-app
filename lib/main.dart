@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'providers/app_provider.dart';
+import 'services/notification_service.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
@@ -16,6 +17,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await NotificationService.instance.init();
 
   runApp(
     ChangeNotifierProvider(
